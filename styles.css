@@ -1,3 +1,12 @@
 /* styles.css */
+/*body {*/
+/*    !*要使整个窗口可拖拽*!*/
+/*    -webkit-app-region: drag;*/
+/*}*/
+
+/*button {*/
+/*    !*则必须将其中的按钮标记为不可拖拽*!*/
+/*    -webkit-app-region: no-drag;*/
+/*}*/
 
 /* Add styles here to customize the appearance of your app */

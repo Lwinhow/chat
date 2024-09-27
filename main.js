@@ -5,6 +5,14 @@ const path = require("node:path");
 function createWindow() {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
+        // frame: false,//要创建无边框窗口，需在 BrowserWindow 的构造中将 frame 参数设置为 false
+        // titleBarStyle: 'hidden',
+        // titleBarOverlay: {
+        //     color: '#2f3241',
+        //     symbolColor: '#74b1be',
+        //     height: 60
+        // },
+        // transparent: true,//创建一个完全透明的窗口?(透明窗口不可调整大小)
         width: 1030, //自己需要的宽高
         height: 680,
         webPreferences: {

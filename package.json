@@ -1,5 +1,5 @@
 {
-  "name": "electron-quick-start",
+  "name": "chat-message",
   "version": "1.0.0",
   "description": "A minimal Electron application",
   "main": "main.js",
@@ -15,7 +15,7 @@
     "tutorial",
     "demo"
   ],
-  "author": "GitHub",
+  "author": "Lwinha",
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "^32.1.2",
