@@ -1,9 +1,9 @@
 <template>
   <div class="moon-shot">
     <div class="moon-box">
-      <div :style="colorConfig.headBg" class="moon-head">
+      <div :style="mergedColorConfig.headBg" class="moon-head">
         <div class="moon-title">
-          <p :style="colorConfig.headTitle" class="title-text">{{ chatTitle }}</p>
+          <p :style="mergedColorConfig.headTitle" class="title-text">{{ title }}</p>
           <p class="name-text">
             <span>{{ myself.name }},</span>
             <span>{{ chatAi.name }}</span>
@@ -20,14 +20,14 @@
               </el-option>
             </el-select>
           </div>
-          <div title="存储对话">
+          <div v-if="chatLogEnabled" title="存储对话">
             <el-switch
                 v-model="isSave"
                 active-color="#2eff9d"
                 inactive-color="#39597a">
             </el-switch>
           </div>
-          <div title="下载对话">
+          <div v-if="chatLogEnabled" title="下载对话">
             <el-popover placement="bottom-start" width="280" trigger="click" :append-to-body="true"
                         @show="loadChatFiles">
               <el-button slot="reference" type="info" icon="el-icon-download" circle></el-button>
@@ -53,8 +53,8 @@
                 icon="el-icon-info"
                 icon-color="red"
                 title="Are you sure to clear chat records?"
-                @confirm=clearMessage>
-              <el-button slot="reference" type="danger" icon="el-icon-delete" circle @click="clearMessage"></el-button>
+                @confirm="clearMessage">
+              <el-button slot="reference" type="danger" icon="el-icon-delete" circle></el-button>
             </el-popconfirm>
           </div>
           <div title="关闭">
@@ -62,17 +62,17 @@
           </div>
         </div>
       </div>
-      <div ref="messagesContainer" :style="colorConfig.bodyBg" class="moon-body">
+      <div ref="messagesContainer" :style="mergedColorConfig.bodyBg" class="moon-body">
         <div v-for="(message,index) in messages" :key="index" class="message-box">
           <div v-if="message.role==='user'" class="my-message">
             <div class="message-content">
               <div class="bubble-wrap">
-                <div :style="colorConfig.message.my.content" class="message-text">
-                  <p :style="colorConfig.message.my.name" class="message-name">{{ myself.name }}</p>
+                <div :style="mergedColorConfig.message.my.content" class="message-text">
+                  <p v-if="showName" :style="mergedColorConfig.message.my.name" class="message-name">{{ myself.name }}</p>
                   <p>{{ message.content }}</p>
                 </div>
                 <div class="bubble-meta">
-                  <div v-if="timestampConfig.show" class="message-timestamp">
+                  <div v-if="mergedTimestampConfig.show" class="message-timestamp">
                     {{ formatTimestamp(message.timestamp) }}
                   </div>
                   <div class="bubble-actions">
@@ -84,21 +84,23 @@
               </div>
             </div>
             <div class="message-icon">
-              <img v-if="profileConfig.ai" :src="myself.profilePicture" :style="profileConfig.styles" alt="">
+              <img v-if="showAvatar && mergedProfileConfig.my && myself.profilePicture" :src="myself.profilePicture"
+                   :style="mergedProfileConfig.styles" alt="">
             </div>
           </div>
           <div v-else class="ai-message">
             <div class="message-icon">
-              <img v-if="profileConfig.my" :src="chatAi.profilePicture" :style="profileConfig.styles" alt="">
+              <img v-if="showAvatar && mergedProfileConfig.ai && chatAi.profilePicture" :src="chatAi.profilePicture"
+                   :style="mergedProfileConfig.styles" alt="">
             </div>
             <div class="message-content">
               <div class="bubble-wrap">
-                <div :style="colorConfig.message.ai.content" class="message-text">
-                  <p :style="colorConfig.message.ai.name" class="message-name">{{ chatAi.name }}</p>
+                <div :style="mergedColorConfig.message.ai.content" class="message-text">
+                  <p v-if="showName" :style="mergedColorConfig.message.ai.name" class="message-name">{{ chatAi.name }}</p>
                   <div class="md-body" v-html="renderMarkdown(message.content)"></div>
                 </div>
                 <div class="bubble-meta">
-                  <div v-if="timestampConfig.show" class="message-timestamp">
+                  <div v-if="mergedTimestampConfig.show" class="message-timestamp">
                     {{ formatTimestamp(message.timestamp) }}
                   </div>
                   <div class="bubble-actions">
@@ -113,21 +115,22 @@
         <div v-if="thinking" class="message-box">
           <div class="ai-message">
             <div class="message-icon">
-              <img v-if="profileConfig.my" :src="chatAi.profilePicture" :style="profileConfig.styles" alt="">
+              <img v-if="showAvatar && mergedProfileConfig.ai && chatAi.profilePicture" :src="chatAi.profilePicture"
+                   :style="mergedProfileConfig.styles" alt="">
             </div>
             <div class="message-content">
-              <div :style="colorConfig.message.ai.content" class="message-text">
-                <p :style="colorConfig.message.ai.name" class="message-name">{{ chatAi.name }}</p>
+              <div :style="mergedColorConfig.message.ai.content" class="message-text">
+                <p v-if="showName" :style="mergedColorConfig.message.ai.name" class="message-name">{{ chatAi.name }}</p>
                 <div class="md-body thinking"><span></span><span></span><span></span></div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div :style="colorConfig.bottomBg" class="moon-bottom">
+      <div :style="mergedColorConfig.bottomBg" class="moon-bottom">
         <div class="message-input">
           <div ref="messageInput"
-               :placeholder=placeholder
+               :placeholder="placeholder"
                class="input-box"
                contenteditable="true"
                tabindex="0"
@@ -138,7 +141,7 @@
           <el-button circle icon="el-icon-s-promotion" type="primary" @click="sendMessage"></el-button>
         </div>
         <div class="sand-icon" title="sendFile">
-          <input ref="fileInput" :accept=acceptImageTypes style="display: none;" type="file" @change="sendFile">
+          <input ref="fileInput" :accept="acceptImageTypes" style="display: none;" type="file" @change="sendFile">
           <el-button circle icon="el-icon-picture" type="primary" @click="openFileInput"></el-button>
         </div>
       </div>
@@ -147,172 +150,109 @@
 </template>
 
 <script>
-/* eslint-disable */
-import api from "@/utils/api";
-import {db, rawDoc} from "@/data/store";
-import {currentUser} from "@/utils/auth";
+import api from '@/utils/api'
 import markdownit from 'markdown-it'
 import DOMPurify from 'dompurify'
+import {
+  defaultAcceptImageTypes,
+  defaultColorConfig,
+  defaultModels,
+  defaultProfileConfig,
+  defaultTimestampConfig
+} from './theme'
 
 const md = markdownit({breaks: true, linkify: true})
 
+/** props 配置按段整体覆盖默认主题（浅合并），未传的段沿用 theme.js 默认值 */
+function mergeTheme(defaults, overrides) {
+  return Object.assign({}, defaults, overrides || {})
+}
+
 export default {
-  name: 'chatAi',
+  name: 'MoonChat',
+  props: {
+    /** 标题与输入框占位符 */
+    title: {type: String, default: 'Chat Title'},
+    placeholder: {type: String, default: 'send your message !'},
+    /** 双方名称与头像（头像传空且对应开关开启时不渲染 img） */
+    myName: {type: String, default: 'User'},
+    aiName: {type: String, default: 'AI'},
+    myAvatar: {type: String, default: ''},
+    aiAvatar: {type: String, default: ''},
+    /** 模型下拉与默认选中项 */
+    models: {type: Array, default: () => defaultModels.slice()},
+    defaultModel: {type: String, default: ''},
+    /** 主题配置，按段覆盖 theme.js 默认值 */
+    colorConfig: {type: Object, default: () => ({})},
+    profileConfig: {type: Object, default: () => ({})},
+    timestampConfig: {type: Object, default: () => ({})},
+    /** 头像总开关：false 时两侧头像都不展示（可与 profileConfig.ai/my 按侧开关叠加） */
+    showAvatar: {type: Boolean, default: false},
+    /** 是否在气泡内展示发送者名称（my/ai 两侧及 thinking 占位） */
+    showName: {type: Boolean, default: false},
+    /** 可发送的图片类型 */
+    acceptImageTypes: {type: Array, default: () => defaultAcceptImageTypes.slice()},
+    /** 请求 AI 时携带的历史消息上限（不含 system） */
+    maxHistory: {type: Number, default: 20},
+    /**
+     * 系统提示词注入函数：() => string。
+     * 返回值作为 role=system 消息插入请求最前；不传则不注入。
+     * 看板数据等业务上下文由调用方组装，组件不耦合任何数据源。
+     */
+    buildSystemPrompt: {type: Function, default: null},
+    /** 是否启用对话日志（保存/下载）；关闭时隐藏相关 UI 并静默跳过上报 */
+    chatLogEnabled: {type: Boolean, default: true},
+    /** 对话日志附加上下文：() => object，返回值合入上报体（如看板 version）；不传则只上报基础字段 */
+    logContext: {type: Function, default: null},
+    /** 对话日志归属的用户名，空则记为 anonymous */
+    username: {type: String, default: ''}
+  },
   data() {
     return {
-      //内容参数
       isSave: true,
-      chatTitle: 'Chat Title',
-      placeholder: 'send your message !',
-      model: 'deepseek-flash',
-      models: [
-        {
-          value: 'deepseek-v4-pro',
-          label: 'deepseek-v4-pro'
-        },
-        {
-          value: 'deepseek-flash',
-          label: 'deepseek-flash'
-        },
-      ],
-      chatAi: {
-        name: 'DeepSeek',
-        profilePicture: require(`@/assets/deepseek.png`)
-      },
-      myself: {
-        name: 'User',
-        profilePicture: require(`@/assets/touxiang.jpg`)
-      },
+      model: this.defaultModel || (this.models[0] && this.models[0].value) || defaultModels[0].value,
       messages: [],
       chatHistory: [],
       thinking: false,
-      username: currentUser() || 'anonymous',
       chatFiles: [],
       selectedFiles: [],
-
-      //已完成的配置 —— 配色与大屏深蓝+青色主题一致
-      colorConfig: {
-        headBg: {
-          background: 'rgba(4, 30, 58, 0.98)'
-        },
-        headTitle: {
-          color: '#eaf7ff'
-        },
-        bodyBg: {
-          background: 'rgba(4, 34, 64, 0.98)'
-        },
-        bottomBg: {
-          background: 'rgba(6, 34, 66, 0.98)'
-        },
-        message: {
-          my: {
-            name: {
-              color: '#ffffff'
-            },
-            content: {
-              background: 'linear-gradient(180deg, #3fd2ff, #0e9ad8)',
-              color: '#ffffff'
-            }
-          },
-          ai: {
-            name: {
-              color: '#8fc6ea'
-            },
-            content: {
-              background: 'rgba(10, 60, 110, 0.9)',
-              color: '#eaf7ff'
-            }
-          },
-        },
-      },
       scrollBottom: {
         messageSent: true,
-        messageReceived: false,
-      },
-      profileConfig: {
-        ai: true,
-        my: true,
-        styles: {
-          width: '30px',
-          height: '30px',
-          borderRadius: '50%',
-        }
-      },
-      timestampConfig: {
-        format: 'MM/dd-HH:mm',
-        show: true,
-      },
-      acceptImageTypes: ['image/png', 'image/jpg', 'image/jpeg'],
-      //还没开发的配置
-      linkOptions: {
-        myself: {
-          className: 'myLinkClass',
-          events: {
-            click: function (e) {
-              alert('Link clicked!');
-            },
-            mouseover: function (e) {
-              alert('Link hovered!');
-            }
-          },
-          format: function (value, type) {
-            if (type === 'url' && value.length > 50) {
-              value = value.slice(0, 50) + '…';
-            }
-            return value;
-          }
-        },
-        others: {
-          className: 'othersLinkClass',
-          events: {
-            click: function (e) {
-              alert('Link clicked!');
-            },
-            mouseover: function (e) {
-              alert('Link hovered!');
-            }
-          },
-          format: function (value, type) {
-            if (type === 'url' && value.length > 50) {
-              value = value.slice(0, 50) + '…';
-            }
-            return value;
-          }
-        }
-      },
+        messageReceived: false
+      }
+    }
+  },
+  computed: {
+    mergedColorConfig() {
+      return mergeTheme(defaultColorConfig, this.colorConfig)
+    },
+    mergedProfileConfig() {
+      return mergeTheme(defaultProfileConfig, this.profileConfig)
+    },
+    mergedTimestampConfig() {
+      return mergeTheme(defaultTimestampConfig, this.timestampConfig)
+    },
+    myself() {
+      return {name: this.myName, profilePicture: this.myAvatar}
+    },
+    chatAi() {
+      return {name: this.aiName, profilePicture: this.aiAvatar}
+    },
+    logUser() {
+      return this.username || 'anonymous'
     }
   },
   methods: {
     closeChat() {
-      this.$emit("closeChat")
+      this.$emit('closeChat')
     },
     clearMessage() {
       this.messages = []
+      this.$emit('clear')
     },
     /** AI 文本是 markdown（**加粗**、- 列表、```代码```），渲染前必须消毒防 XSS */
     renderMarkdown(text) {
       return DOMPurify.sanitize(md.render(text || ''))
-    },
-    /**
-     * 系统提示词：角色设定 + 版本清单 + 当前看板全量数据。
-     * 每次发消息都重新构建 —— 数据随版本切换/上传自动保持最新。
-     */
-    buildSystemPrompt() {
-      const doc = rawDoc()
-      const versions = (db.versions || [])
-          .map(v => `${v.id} (${v.label || '-'})`)
-          .join('; ')
-      return [
-        'You are the AI assistant embedded in the DE152 DART project command dashboard.',
-        'Answer questions about this construction project strictly based on the dashboard data provided below.',
-        'The project is located in Singapore. References shall be subject to local laws, regulations, work codes and requirements.',
-        'If something is not in the data, say you cannot find it instead of guessing.',
-        `Current dashboard version: ${doc.meta && doc.meta.version || '-'} (${doc.meta && doc.meta.label || '-'})`,
-        `Other versions available on the server: ${versions || 'none'} — their data is NOT loaded; tell the user to switch versions in the top bar to inspect them.`,
-        'Reply concisely in the same language the user writes in.',
-        '--- DASHBOARD DATA (JSON) ---',
-        JSON.stringify(doc)
-      ].join('\n')
     },
     async sendMessageToAI() {
       this.thinking = true
@@ -320,61 +260,71 @@ export default {
       try {
         this.chatHistory = []
         for (const message of this.messages) {
-          const one = {
+          this.chatHistory.push({
             role: message.role,
-            content: message.content,
-          }
-          this.chatHistory.push(one)
+            content: message.content
+          })
         }
-        if (this.chatHistory.length > 20) {
-          let numberOfItemsToRemove = this.chatHistory.length - 20;
-          this.chatHistory.splice(0, numberOfItemsToRemove);
+        if (this.chatHistory.length > this.maxHistory) {
+          const numberOfItemsToRemove = this.chatHistory.length - this.maxHistory
+          this.chatHistory.splice(0, numberOfItemsToRemove)
         }
-        const payload = [{role: 'system', content: this.buildSystemPrompt()}, ...this.chatHistory];
-        const response = await api.getCompletion(this.model, payload);
-        const time = new Date();
-        let result = {role: 'assistant', content: response.data.choices[0].message.content, timestamp: time}
+        const payload = [...this.chatHistory]
+        if (typeof this.buildSystemPrompt === 'function') {
+          payload.unshift({role: 'system', content: this.buildSystemPrompt()})
+        }
+        const response = await api.getCompletion(this.model, payload)
+        const time = new Date()
+        const result = {
+          role: 'assistant',
+          content: response.data.choices[0].message.content,
+          timestamp: time
+        }
         this.messages.push(result)
-        const lastUser = [...this.messages].reverse().find(m => m.role === 'user')
-        this.logConversation(lastUser ? lastUser.content : '', result.content)
-        this.scrollToBottom();
+        this.emitConversationLog(result.content)
+        this.$emit('receive', result)
+        this.scrollToBottom()
       } catch (err) {
-        const msg = (err.response && err.response.data && err.response.data.error && err.response.data.error.message) || err.message;
+        const msg = (err.response && err.response.data && err.response.data.error && err.response.data.error.message) || err.message
         const errText = '⚠ ' + msg
         this.messages.push({role: 'assistant', content: errText, timestamp: new Date()})
-        const lastUser = [...this.messages].reverse().find(m => m.role === 'user')
-        this.logConversation(lastUser ? lastUser.content : '', errText)
-        this.scrollToBottom();
+        this.emitConversationLog(errText)
+        this.$emit('error', err)
+        this.scrollToBottom()
         console.log(err)
       } finally {
         this.thinking = false
-        this.scrollToBottom();
+        this.scrollToBottom()
       }
     },
-    /** 每轮对话写入 server 端 public/chat/chat-YYYY-MM-DD-<username>.txt；isSave 关闭或 server 不在时静默跳过 */
+    /** 取最近一条用户消息，与 AI 回复一起写入 server 端 public/chat/chat-YYYY-MM-DD-<username>.txt；isSave 关闭或 server 不在时静默跳过 */
+    emitConversationLog(aiText) {
+      if (!this.isSave || !this.chatLogEnabled) return
+      const lastUser = [...this.messages].reverse().find(m => m.role === 'user')
+      this.logConversation(lastUser ? lastUser.content : '', aiText)
+    },
     logConversation(userText, aiText) {
-      if (!this.isSave) return
-      const doc = rawDoc()
+      const extra = typeof this.logContext === 'function' ? (this.logContext() || {}) : {}
       fetch(`${(process.env.BASE_URL || '/').replace(/^\.\//, '/')}api/chat-log`, {
         method: 'POST',
         headers: {'content-type': 'application/json'},
-        body: JSON.stringify({
+        body: JSON.stringify(Object.assign({
           user: userText,
           assistant: aiText,
-          model: this.model,
-          version: doc.meta && doc.meta.version,
-          username: this.username
-        })
+          model: this.model
+        }, extra, {
+          username: this.logUser
+        }))
       }).catch(() => {
       })
     },
     fileLabel(f) {
-      return f.replace(/^chat-/, '').replace(new RegExp(`-${this.username}\\.txt$`), '')
+      return f.replace(/^chat-/, '').replace(new RegExp(`-${this.logUser}\\.txt$`), '')
     },
     loadChatFiles() {
       this.selectedFiles = []
       const base = (process.env.BASE_URL || '/').replace(/^\.\//, '/')
-      fetch(`${base}api/chat-log/list?username=${encodeURIComponent(this.username)}`)
+      fetch(`${base}api/chat-log/list?username=${encodeURIComponent(this.logUser)}`)
           .then(r => r.json())
           .then(d => {
             this.chatFiles = d.files || []
@@ -388,7 +338,7 @@ export default {
       const base = (process.env.BASE_URL || '/').replace(/^\.\//, '/')
       for (const f of this.selectedFiles) {
         try {
-          const res = await fetch(`${base}api/chat-log/download?file=${encodeURIComponent(f)}&username=${encodeURIComponent(this.username)}`)
+          const res = await fetch(`${base}api/chat-log/download?file=${encodeURIComponent(f)}&username=${encodeURIComponent(this.logUser)}`)
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const blob = await res.blob()
           const url = URL.createObjectURL(blob)
@@ -429,79 +379,77 @@ export default {
       document.body.removeChild(ta)
     },
     sendMessage() {
-      const messageContent = this.$refs.messageInput.innerText;
+      const messageContent = this.$refs.messageInput.innerText
       if (messageContent.trim()) {
-        const time = new Date();
         const message = {
-          role: "user",
+          role: 'user',
           content: messageContent,
-          timestamp: time,
+          timestamp: new Date()
         }
         this.messages.push(message)
-        this.$refs.messageInput.innerText = '';
+        this.$refs.messageInput.innerText = ''
+        this.$emit('send', message)
         if (this.scrollBottom.messageSent) {
-          this.scrollToBottom();
+          this.scrollToBottom()
         }
         this.sendMessageToAI()
       } else {
-        console.log('输入信息不能为空');
+        console.log('输入信息不能为空')
       }
     },
-
+    // TODO 图片上传尚未实现：当前仅校验类型并抛出 file-selected 事件，由调用方决定如何处理
     sendFile(event) {
-      const files = event.target.files;
+      const files = event.target.files
       if (files.length > 0) {
-        const file = files[0];
-        const isAcceptedType = this.acceptImageTypes.includes(file.type);
+        const file = files[0]
+        const isAcceptedType = this.acceptImageTypes.includes(file.type)
         if (!isAcceptedType) {
-          this.$message.error('不接受的文件类型，请选择PNG、JPG或JPEG格式的文件。');
-          this.$refs.fileInput.value = '';
-          return;
+          this.$message.error('不接受的文件类型，请选择PNG、JPG或JPEG格式的文件。')
+          this.$refs.fileInput.value = ''
+          return
         }
-        console.log('选中的文件:', file);
+        this.$emit('file-selected', file)
       }
     },
     handleKeydown(event) {
       if (event.key === 'Enter') {
-        event.preventDefault();
-        this.sendMessage();
+        event.preventDefault()
+        this.sendMessage()
       }
     },
     openFileInput() {
-      this.$refs.fileInput.click();
+      this.$refs.fileInput.click()
     },
     scrollToBottom() {
       this.$nextTick(() => {
-        const container = this.$refs.messagesContainer;
-        container.scrollTop = container.scrollHeight;
-      });
+        const container = this.$refs.messagesContainer
+        container.scrollTop = container.scrollHeight
+      })
     },
     formatTimestamp(timestamp) {
-      const date = new Date(timestamp); // 解析日期字符串
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // 月份，注意要加1
-      const day = String(date.getDate()).padStart(2, '0'); // 日期
-      const hour = String(date.getHours()).padStart(2, '0'); // 小时
-      const minute = String(date.getMinutes()).padStart(2, '0'); // 分钟
-      const year = date.getFullYear(); // 年份
-      switch (this.timestampConfig.format) {
+      const date = new Date(timestamp)
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+      const year = date.getFullYear()
+      switch (this.mergedTimestampConfig.format) {
         case 'MM/dd-HH:mm':
-          return `${month}/${day}-${hour}:${minute}`;
+          return `${month}/${day}-${hour}:${minute}`
         case 'dd/MM/yyyy':
-          return `${day}/${month}/${year}`; // 日/月/年格式
+          return `${day}/${month}/${year}`
         case 'yyyy-MM-dd HH:mm':
-          return `${year}-${month}-${day} ${hour}:${minute}`; // 年-月-日 时:分格式
+          return `${year}-${month}-${day} ${hour}:${minute}`
         case 'MM dd, yyyy':
-          return `${month} ${day}, ${year}`; // 月 日, 年格式
+          return `${month} ${day}, ${year}`
         case 'dd-MM-yyyy HH:mm':
-          return `${day}-${month}-${year} ${hour}:${minute}`; // 日-月-年 时:分格式
+          return `${day}-${month}-${year} ${hour}:${minute}`
         case 'HH:mm':
-          return `${hour}:${minute}`; // 时:分格式
+          return `${hour}:${minute}`
         default:
-          return `${month}/${day}-${hour}:${minute}`; // 默认格式
+          return `${month}/${day}-${hour}:${minute}`
       }
-    },
-  },
-  mounted() {
+    }
   }
 }
 </script>
@@ -905,7 +853,6 @@ export default {
 <!--
   v-html 注入的 markdown 内容不带 scoped data-v 属性，scoped 样式命中不了，
   必须用非 scoped 块并以 .md-body 为命名空间，避免污染其他组件。
-  AI 气泡底色是红色（colorConfig.message.ai.content），配色按白字浅透明底设计。
 -->
 <style lang="scss">
 .md-body {
